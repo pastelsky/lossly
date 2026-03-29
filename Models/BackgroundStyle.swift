@@ -121,15 +121,22 @@ extension BackgroundStyle {
     private static func loadBundleTextures() -> [BackgroundStyle] {
         let names = ["photoshop","461223185","461223192","A_MIXRED","G_IRON3",
                      "nature71","Rustpattern","seawaterfull2","STONE4"]
-        return names.compactMap { name in
-            for ext in ["png","jpg","jpeg"] {
+        let extensions = ["png","jpg","jpeg"]
+        
+        // Collect URLs first (safe on any thread)
+        var results: [BackgroundStyle] = []
+        for name in names {
+            for ext in extensions {
                 if let url = Bundle.main.url(forResource: name, withExtension: ext, subdirectory: "Textures")
-                          ?? Bundle.main.url(forResource: name, withExtension: ext),
-                   let img = NSImage(contentsOf: url) {
-                    return .pattern(name: name, image: img)
+                          ?? Bundle.main.url(forResource: name, withExtension: ext) {
+                    // Use NSImage(contentsOf:) which is thread-safe
+                    if let img = NSImage(contentsOf: url) {
+                        results.append(.pattern(name: name, image: img))
+                        break
+                    }
                 }
             }
-            return nil
         }
+        return results
     }
 }
