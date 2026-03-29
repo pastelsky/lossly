@@ -364,8 +364,8 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
             }
         }
 
-        // Create zebra overlay: diagonal stripes where mask is true
-        let stripeWidth = max(4, w / 120)  // Scale stripe width with image size
+        // Create zebra overlay: thin diagonal lines + outline where mask is true
+        let lineSpacing = max(6, w / 80)   // Space between lines scales with image
         guard let ctx = CGContext(data: nil, width: w, height: h,
                                   bitsPerComponent: 8, bytesPerRow: w * 4,
                                   space: CGColorSpaceCreateDeviceRGB(),
@@ -373,29 +373,55 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
             zebraOverlay = nil; return
         }
 
+        // Dark magenta color — poppy but professional
+        let lineR: UInt8 = 200
+        let lineG: UInt8 = 30
+        let lineB: UInt8 = 120
+        let lineA: UInt8 = 180   // ~70% opacity for lines
+        let outlineA: UInt8 = 200 // ~78% opacity for outlines
+
         let buf = ctx.data!.bindMemory(to: UInt8.self, capacity: pixelCount * 4)
+
+        // First pass: thin diagonal lines inside masked areas
+        for y in 0..<h {
+            for x in 0..<w {
+                let i = y * w + x
+                let off = i * 4
+                if mask[i] {
+                    // Thin line: 1px line every `lineSpacing` pixels diagonally
+                    let isLine = ((x + y) % lineSpacing) == 0
+                    if isLine {
+                        buf[off]   = lineR
+                        buf[off+1] = lineG
+                        buf[off+2] = lineB
+                        buf[off+3] = lineA
+                    } else {
+                        buf[off] = 0; buf[off+1] = 0; buf[off+2] = 0; buf[off+3] = 0
+                    }
+                } else {
+                    buf[off] = 0; buf[off+1] = 0; buf[off+2] = 0; buf[off+3] = 0
+                }
+            }
+        }
+
+        // Second pass: thin outline at boundaries of masked regions
         for y in 0..<h {
             for x in 0..<w {
                 let i = y * w + x
                 if mask[i] {
-                    // Diagonal stripe pattern: (x + y) mod (stripeWidth*2) < stripeWidth
-                    let inStripe = ((x + y) % (stripeWidth * 2)) < stripeWidth
-                    let off = i * 4
-                    if inStripe {
-                        // Red-ish stripe, semi-transparent
-                        buf[off]   = 255  // R
-                        buf[off+1] = 50   // G
-                        buf[off+2] = 50   // B
-                        buf[off+3] = 140  // A (~55% opacity)
-                    } else {
-                        buf[off]   = 0
-                        buf[off+1] = 0
-                        buf[off+2] = 0
-                        buf[off+3] = 0
+                    // Check if any neighbor is NOT in the mask (= boundary pixel)
+                    let isBorder =
+                        (x > 0   && !mask[i - 1]) ||
+                        (x < w-1 && !mask[i + 1]) ||
+                        (y > 0   && !mask[i - w]) ||
+                        (y < h-1 && !mask[i + w])
+                    if isBorder {
+                        let off = i * 4
+                        buf[off]   = lineR
+                        buf[off+1] = lineG
+                        buf[off+2] = lineB
+                        buf[off+3] = outlineA
                     }
-                } else {
-                    let off = i * 4
-                    buf[off] = 0; buf[off+1] = 0; buf[off+2] = 0; buf[off+3] = 0
                 }
             }
         }
