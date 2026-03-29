@@ -95,27 +95,24 @@ enum BackgroundStyle: Identifiable, Equatable, Sendable {
 
 extension BackgroundStyle {
 
-    /// All available background styles, cached after first access.
+    /// All available background styles. The color/checkerboard styles are hardcoded;
+    /// textures are loaded lazily on first access (must be on main thread).
     @MainActor
-    static var all: [BackgroundStyle] { defaultStyles() }
-
-    @MainActor
-    static func defaultStyles() -> [BackgroundStyle] {
-        if let cached = _cachedStyles { return cached }
-        var styles: [BackgroundStyle] = [
-            .checkerboard,
-            .color(NSColor(white: 1.0, alpha: 1)),
-            .color(NSColor(white: 0.0, alpha: 1)),
-            .color(NSColor(white: 0.5, alpha: 1)),
-            .color(NSColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1)),
-        ]
-        styles += loadBundleTextures()
-        _cachedStyles = styles
-        return styles
+    static var all: [BackgroundStyle] {
+        if _texturesLoaded { return _cachedStyles }
+        _cachedStyles.append(contentsOf: loadBundleTextures())
+        _texturesLoaded = true
+        return _cachedStyles
     }
 
-    // Static cache — only accessed from @MainActor context
-    @MainActor private static var _cachedStyles: [BackgroundStyle]?
+    @MainActor private static var _texturesLoaded = false
+    @MainActor private static var _cachedStyles: [BackgroundStyle] = [
+        .checkerboard,
+        .color(NSColor(white: 1.0, alpha: 1)),
+        .color(NSColor(white: 0.0, alpha: 1)),
+        .color(NSColor(white: 0.5, alpha: 1)),
+        .color(NSColor(red: 0.0, green: 0.5, blue: 1.0, alpha: 1)),
+    ]
 
     @MainActor
     private static func loadBundleTextures() -> [BackgroundStyle] {
