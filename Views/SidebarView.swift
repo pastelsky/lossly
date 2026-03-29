@@ -107,23 +107,13 @@ struct SidebarView: View {
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                     Spacer()
-                    if document.resizePercent < 100, document.sourceImage != nil {
-                        Text("\(document.resizedWidth) × \(document.resizedHeight)")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.quaternary, in: Capsule())
-                    } else {
-                        Text("100%")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(.quaternary, in: Capsule())
-                    }
+                    Text("\(document.resizedWidth) × \(document.resizedHeight)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.quaternary, in: Capsule())
                 }
                 .padding(.trailing, 4)
                 Slider(value: Binding(
