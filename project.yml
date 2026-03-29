@@ -41,10 +41,9 @@ targets:
       - path: Views
       - path: Services
       - path: Utilities
+      - path: Resources/Assets.xcassets
     resources:
       - path: Resources/Textures
-        buildPhase: resources
-      - path: Resources/Assets.xcassets
         buildPhase: resources
       - path: Resources/Info.plist
         buildPhase: none
