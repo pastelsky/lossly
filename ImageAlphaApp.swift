@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 // MARK: - AppDelegate — applies saved theme before first window renders
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         applyStoredTheme()

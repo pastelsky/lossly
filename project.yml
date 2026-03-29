@@ -44,6 +44,8 @@ targets:
     resources:
       - path: Resources/Textures
         buildPhase: resources
+      - path: Resources/Assets.xcassets
+        buildPhase: resources
       - path: Resources/Info.plist
         buildPhase: none
     preBuildScripts:
