@@ -68,7 +68,9 @@ jobs:
             -configuration Release \
             -archivePath ${{ runner.temp }}/Lossly.xcarchive \
             -destination 'generic/platform=macOS' \
-            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY='-' \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=YES \
             MARKETING_VERSION=${{ needs.version.outputs.version }} \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
           | xcpretty
@@ -77,6 +79,9 @@ jobs:
         run: |
           cp -r ${{ runner.temp }}/Lossly.xcarchive/Products/Applications/Lossly.app \
                 ${{ runner.temp }}/Lossly.app
+
+      - name: Ad-hoc code sign
+        run: codesign --deep --force --sign - --options runtime ${{ runner.temp }}/Lossly.app
 
       - name: Create DMG
         run: |

@@ -32,6 +32,12 @@ In loving memory of [ImageAlpha](https://pngmini.com) by Kornel Lesiński — th
 ### Download (Recommended)
 Download the latest release from the [Releases page](../../releases).
 
+**Note on Gatekeeper:** If macOS blocks the app on first launch, run this command to allow it:
+```bash
+xattr -cr Lossly.app
+```
+Then try opening it again.
+
 ### Build from Source
 ```bash
 git clone https://github.com/yourusername/lossly.git
