@@ -1,6 +1,6 @@
 # Lossly
 
-![Lossly Screenshot](Resources/ss-lossy.png)
+![Lossly Screenshot](Resources/ss-mac.png)
 
 **Lossly** is a native macOS app for lossy PNG compression. It uses a perceptual quantization pipeline to dramatically reduce PNG file sizes with minimal visible quality loss.
 
