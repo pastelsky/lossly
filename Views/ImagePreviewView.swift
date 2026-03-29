@@ -93,6 +93,9 @@ struct ImagePreviewView: View {
         panel.nameFieldStringValue = document.suggestedFilename
         panel.prompt = "Export"
         panel.message = "Export optimised PNG"
+        if let dir = document.sourceDirectoryURL {
+            panel.directoryURL = dir
+        }
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             // Prefer quantized data; fall back to source

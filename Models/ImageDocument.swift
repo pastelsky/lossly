@@ -88,6 +88,7 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
     var sourceFileSize: Int = 0
     var quantizedFileSize: Int = 0
     var sourceFilename: String = ""
+    var sourceDirectoryURL: URL?
 
     var compressionRatio: Double {
         guard sourceFileSize > 0 else { return 1.0 }
@@ -194,6 +195,7 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
         sourceImage = NSImage(data: data)
         sourceFileSize = data.count
         sourceFilename = url.deletingPathExtension().lastPathComponent
+        sourceDirectoryURL = url.deletingLastPathComponent()
         quantizedData = nil
         quantizedImage = nil
         quantizedFileSize = 0
