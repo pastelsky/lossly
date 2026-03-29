@@ -19,6 +19,8 @@
     <string>APPL</string>
     <key>CFBundleSignature</key>
     <string>????</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
 
     <!-- macOS requirements -->
     <key>LSMinimumSystemVersion</key>
