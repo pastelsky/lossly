@@ -29,6 +29,14 @@ In loving memory of [ImageAlpha](https://pngmini.com) by Kornel Lesiński — th
 
 ## Installation
 
+> **Note**: Lossly is not yet notarized with Apple. If macOS says "app is damaged", run:
+> ```bash
+> xattr -cr /Applications/Lossly.app
+> ```
+> This safely removes the quarantine flag added when downloading from the internet.
+
+
+
 ### Download (Recommended)
 Download the latest release from the [Releases page](../../releases).
 

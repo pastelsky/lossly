@@ -160,7 +160,13 @@ jobs:
             ### Install
             1. Download **Lossly-${{ needs.build.outputs.version }}.dmg** below
             2. Open the DMG and drag **Lossly.app** to your Applications folder
-            3. Right-click → Open on first launch (Gatekeeper)
+            3. If macOS says "app is damaged", run in Terminal:
+               ```
+               xattr -cr /Applications/Lossly.app
+               ```
+            4. Launch Lossly
+
+            > Lossly is not yet notarized. We're working on it. The `xattr` command is safe — it removes the macOS quarantine flag added when downloading from the internet.
 
             ### Requirements
             - macOS 14.0 (Sonoma) or later
