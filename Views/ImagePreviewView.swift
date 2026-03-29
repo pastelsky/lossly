@@ -48,17 +48,6 @@ struct ImagePreviewView: View {
             bottomBar
         }
         .toolbar {
-            ToolbarItem(placement: .automatic) {
-                if document.isProcessing {
-                    HStack(spacing: 4) {
-                        ProgressView()
-                            .controlSize(.small)
-                        Text("Optimizing…")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     saveOptimizedImage()
@@ -165,8 +154,19 @@ struct ImagePreviewView: View {
 
             Spacer()
 
-            // File size pill
-            if document.sourceFileSize > 0, document.quantizedFileSize > 0 {
+            // Show spinner while processing, file size pill when done
+            if document.isProcessing {
+                HStack(spacing: 5) {
+                    ProgressView()
+                        .controlSize(.small)
+                    Text("Optimizing…")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(.fill.secondary, in: Capsule())
+            } else if document.sourceFileSize > 0, document.quantizedFileSize > 0 {
                 fileSizePill
             }
 
