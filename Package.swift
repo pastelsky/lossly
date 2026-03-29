@@ -55,8 +55,6 @@ let package = Package(
                 "Models/BackgroundStyle.swift",
                 "Models/ImageDocument.swift",
                 "Services/QuantizationService.swift",
-                "Services/ImageOptimIntegration.swift",
-                "Utilities/VisualEffectView.swift",
                 "Utilities/HandCursorView.swift",
                 "Views/ContentView.swift",
                 "Views/SidebarView.swift",
@@ -69,7 +67,6 @@ let package = Package(
                 // Bundle the pre-built CLI tools so they are placed in the
                 // app's Resources directory and discoverable at runtime.
                 .copy("Binaries/pngquant"),
-                .copy("Binaries/posterizer"),
             ],
             swiftSettings: [
                 .unsafeFlags(["-strict-concurrency=complete"]),
