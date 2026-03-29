@@ -69,6 +69,9 @@ struct SidebarView: View {
                 case .manual:
                     manualSection
                 }
+
+                // Resize — shown in both modes
+                resizeSection
             }
             .listStyle(.sidebar)
 
@@ -89,6 +92,53 @@ struct SidebarView: View {
                     .padding(.bottom, 10)
             }
         }
+    }
+
+    // MARK: Resize
+
+    @ViewBuilder
+    private var resizeSection: some View {
+        Section {
+            VStack(spacing: 4) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Resize")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                    Spacer()
+                    if document.resizePercent < 100, document.sourceImage != nil {
+                        Text("\(document.resizedWidth) × \(document.resizedHeight)")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.quaternary, in: Capsule())
+                    } else {
+                        Text("100%")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(.quaternary, in: Capsule())
+                    }
+                }
+                .padding(.trailing, 4)
+                Slider(value: Binding(
+                    get: { Double(document.resizePercent) },
+                    set: { document.resizePercent = max(1, Int($0)) }
+                ), in: 1...100) {
+                    EmptyView()
+                } minimumValueLabel: {
+                    Text("1%").font(.caption).foregroundStyle(.primary)
+                } maximumValueLabel: {
+                    Text("100%").font(.caption).foregroundStyle(.primary)
+                }
+            }
+        }
+        .collapsible(false)
     }
 
     // MARK: Auto Mode

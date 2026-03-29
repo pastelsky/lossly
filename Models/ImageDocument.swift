@@ -61,6 +61,22 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
 
     var ditheringEnabled: Bool = true { didSet { scheduleQuantization() } }
 
+    // MARK: Resize settings
+
+    /// Resize scale 1–100 percent. 100 = original size (no resize).
+    var resizePercent: Int = 100 { didSet { scheduleQuantization() } }
+
+    /// Computed output dimensions based on resizePercent
+    var resizedWidth: Int {
+        guard let img = sourceImage else { return 0 }
+        return max(1, Int(img.size.width * Double(resizePercent) / 100.0))
+    }
+
+    var resizedHeight: Int {
+        guard let img = sourceImage else { return 0 }
+        return max(1, Int(img.size.height * Double(resizePercent) / 100.0))
+    }
+
     // MARK: Display settings
 
     var showOriginal: Bool = false
@@ -198,8 +214,9 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
         // Auto mode always runs DEFLATE re-pack; Manual mode respects the toggle
         let deflate = compressionMode == .auto ? true : deflateOptimizationEnabled
         // Include deflate flag in version ID so toggling it invalidates the cache
+        let resize = resizePercent
         let baseID = q.versionID(quality: quality, dithering: dither, speed: spd, posterize: post)
-        let versionID = baseID + ":ox\(deflate ? 1 : 0)"
+        let versionID = baseID + ":ox\(deflate ? 1 : 0):rs\(resize)"
 
         guard versionID != currentVersionID else { return }
 
@@ -214,6 +231,7 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
                                        quality: quality, dither: dither,
                                        speed: spd, posterize: post,
                                        deflate: deflateOptimizationEnabled,
+                                       resizePercent: resize,
                                        versionID: versionID)
         }
     }
@@ -221,14 +239,23 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
     private func runQuantization(
         data: Data, quantizer: any Quantizer,
         quality: ClosedRange<Int>, dither: Bool,
-        speed: Int, posterize: Int, deflate: Bool, versionID: String
+        speed: Int, posterize: Int, deflate: Bool,
+        resizePercent: Int, versionID: String
     ) async {
         isProcessing = true
         processingError = nil
 
         do {
+            // Resize first if needed
+            let inputData: Data
+            if resizePercent < 100, let resized = Self.resizeImageData(data, percent: resizePercent) {
+                inputData = resized
+            } else {
+                inputData = data
+            }
+
             let result = try await QuantizationService.shared.quantize(
-                data: data, quantizer: quantizer,
+                data: inputData, quantizer: quantizer,
                 quality: quality, dither: dither,
                 speed: speed, posterize: posterize,
                 deflate: deflate
@@ -268,5 +295,36 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
         if bytes < 1024        { return "\(bytes) B" }
         if bytes < 1024 * 1024 { return String(format: "%.1f KB", Double(bytes) / 1024) }
         return String(format: "%.1f MB", Double(bytes) / (1024 * 1024))
+    }
+
+    // MARK: Resize using Core Graphics
+
+    private static func resizeImageData(_ data: Data, percent: Int) -> Data? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let cgImage = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return nil }
+
+        let origW = cgImage.width
+        let origH = cgImage.height
+        let newW = max(1, origW * percent / 100)
+        let newH = max(1, origH * percent / 100)
+
+        guard let ctx = CGContext(
+            data: nil, width: newW, height: newH,
+            bitsPerComponent: 8, bytesPerRow: 0,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return nil }
+
+        ctx.interpolationQuality = .high
+        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: newW, height: newH))
+
+        guard let resized = ctx.makeImage() else { return nil }
+
+        let mutableData = NSMutableData()
+        guard let dest = CGImageDestinationCreateWithData(mutableData, "public.png" as CFString, 1, nil) else { return nil }
+        CGImageDestinationAddImage(dest, resized, nil)
+        guard CGImageDestinationFinalize(dest) else { return nil }
+
+        return mutableData as Data
     }
 }
