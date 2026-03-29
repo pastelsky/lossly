@@ -2,22 +2,56 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
+    paths-ignore:
+      - 'README.md'
+      - 'THIRD_PARTY_LICENSES.md'
+      - 'CHANGELOG.md'
+      - '.github/workflows/ci.yml'
 
 jobs:
-  release:
-    name: Build & Release
+  # ── Step 1: Determine next version ──────────────────────────────────────────
+  version:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.semver.outputs.version }}
+      tag: ${{ steps.semver.outputs.tag }}
+      changelog: ${{ steps.semver.outputs.changelog }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute next version
+        id: semver
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          dry_run: true
+          default_bump: patch
+          release_branches: main
+          # Conventional commit prefixes:
+          # feat: → minor bump, fix:/chore:/refactor: → patch bump
+          # BREAKING CHANGE → major bump
+
+  # ── Step 2: Build macOS app ──────────────────────────────────────────────────
+  build:
+    name: Build macOS App
     runs-on: macos-15
-    
-    permissions:
-      contents: write
+    needs: version
+    outputs:
+      version: ${{ needs.version.outputs.version }}
+      tag: ${{ needs.version.outputs.tag }}
+      changelog: ${{ needs.version.outputs.changelog }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select Xcode
+      - name: Select Xcode 16
         run: sudo xcode-select -s /Applications/Xcode_16.app
 
       - name: Install xcodegen
@@ -26,67 +60,96 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
       - name: Build Release Archive
         run: |
           xcodebuild archive \
             -project Lossly.xcodeproj \
             -scheme Lossly \
             -configuration Release \
-            -archivePath build/Lossly.xcarchive \
+            -archivePath ${{ runner.temp }}/Lossly.xcarchive \
             -destination 'generic/platform=macOS' \
             CODE_SIGNING_ALLOWED=NO \
-            MARKETING_VERSION=${{ steps.version.outputs.VERSION }} \
-            | xcpretty
+            MARKETING_VERSION=${{ needs.version.outputs.version }} \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+          | xcpretty
 
-      - name: Export App
+      - name: Copy app from archive
         run: |
-          xcodebuild -exportArchive \
-            -archivePath build/Lossly.xcarchive \
-            -exportPath build/export \
-            -exportOptionsPlist ExportOptions.plist \
-            | xcpretty || true
-          
-          # Fallback: copy .app directly from archive
-          cp -r build/Lossly.xcarchive/Products/Applications/Lossly.app build/Lossly.app
+          cp -r ${{ runner.temp }}/Lossly.xcarchive/Products/Applications/Lossly.app \
+                ${{ runner.temp }}/Lossly.app
 
       - name: Create DMG
         run: |
           brew install create-dmg
           create-dmg \
-            --volname "Lossly ${{ steps.version.outputs.VERSION }}" \
+            --volname "Lossly ${{ needs.version.outputs.version }}" \
             --window-pos 200 120 \
-            --window-size 600 400 \
-            --icon-size 100 \
-            --icon "Lossly.app" 175 190 \
+            --window-size 560 400 \
+            --icon-size 128 \
+            --icon "Lossly.app" 140 180 \
             --hide-extension "Lossly.app" \
-            --app-drop-link 425 190 \
-            "build/Lossly-${{ steps.version.outputs.VERSION }}.dmg" \
-            "build/Lossly.app" || \
-          # Fallback to zip if DMG fails
-          cd build && zip -r "Lossly-${{ steps.version.outputs.VERSION }}.zip" Lossly.app
+            --app-drop-link 420 180 \
+            "${{ runner.temp }}/Lossly-${{ needs.version.outputs.version }}.dmg" \
+            "${{ runner.temp }}/Lossly.app" || \
+          (cd ${{ runner.temp }} && zip -r \
+            "Lossly-${{ needs.version.outputs.version }}.zip" \
+            Lossly.app)
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lossly-dmg
+          path: |
+            ${{ runner.temp }}/Lossly-*.dmg
+            ${{ runner.temp }}/Lossly-*.zip
+          retention-days: 7
+
+  # ── Step 3: Tag + publish GitHub Release ────────────────────────────────────
+  publish:
+    name: Publish Release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download DMG artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Lossly-dmg
+          path: dist/
+
+      - name: Create and push tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          custom_tag: ${{ needs.build.outputs.version }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Lossly ${{ steps.version.outputs.VERSION }}
+          tag_name: v${{ needs.build.outputs.version }}
+          name: Lossly ${{ needs.build.outputs.version }}
           body: |
-            ## Lossly ${{ steps.version.outputs.VERSION }}
+            ## What's Changed
 
-            ### Download
-            - **Lossly.dmg** — drag to Applications to install
+            ${{ needs.build.outputs.changelog }}
 
-            ### What's new
-            See [CHANGELOG](CHANGELOG.md) for details.
+            ---
+
+            ### Install
+            1. Download **Lossly-${{ needs.build.outputs.version }}.dmg** below
+            2. Open the DMG and drag **Lossly.app** to your Applications folder
+            3. Right-click → Open on first launch (Gatekeeper)
 
             ### Requirements
             - macOS 14.0 (Sonoma) or later
             - Apple Silicon (arm64)
-          files: |
-            build/Lossly-*.dmg
-            build/Lossly-*.zip
-          draft: true
+          files: dist/*
+          draft: false
           prerelease: false
