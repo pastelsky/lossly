@@ -23,9 +23,11 @@ struct LosslyApp: App {
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    @State private var document = ImageDocument()
+
     var body: some Scene {
         WindowGroup {
-            ContentView(document: ImageDocument())
+            ContentView(document: document)
                 .frame(minWidth: 700, minHeight: 480)
         }
         .windowResizability(.contentMinSize)
