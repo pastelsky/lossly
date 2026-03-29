@@ -1,5 +1,7 @@
 # Lossly
 
+![Lossly Screenshot](Resources/ss-lossy.png)
+
 **Lossly** is a native macOS app for lossy PNG compression. It uses a perceptual quantization pipeline to dramatically reduce PNG file sizes with minimal visible quality loss.
 
 In loving memory of [ImageAlpha](https://pngmini.com) by Kornel Lesiński — the original inspiration for this project.

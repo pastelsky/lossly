@@ -145,8 +145,12 @@ actor QuantizationService {
                 let outputData = buffer.drain()
 
                 let status = proc.terminationStatus
-                if status == 0 || status == 98 {
+                if status == 0 {
                     continuation.resume(returning: outputData)
+                } else if status == 99 {
+                    // pngquant exit 99 = quality too low to meet minimum threshold.
+                    // Return the original input data (lossless passthrough).
+                    continuation.resume(returning: inputData)
                 } else {
                     let errData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
                     let errMsg = String(data: errData, encoding: .utf8) ?? "exit \(status)"
