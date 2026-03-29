@@ -6,8 +6,6 @@
 
 In loving memory of [ImageAlpha](https://pngmini.com) by Kornel Lesiński — the original inspiration for this project.
 
-![Lossly Screenshot](docs/screenshot.png)
-
 ## Features
 
 - **Auto mode** — single quality slider; pngquant finds the minimum palette automatically
