@@ -1,0 +1,92 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: macos-15
+    
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Build Release Archive
+        run: |
+          xcodebuild archive \
+            -project Lossly.xcodeproj \
+            -scheme Lossly \
+            -configuration Release \
+            -archivePath build/Lossly.xcarchive \
+            -destination 'generic/platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION=${{ steps.version.outputs.VERSION }} \
+            | xcpretty
+
+      - name: Export App
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath build/Lossly.xcarchive \
+            -exportPath build/export \
+            -exportOptionsPlist ExportOptions.plist \
+            | xcpretty || true
+          
+          # Fallback: copy .app directly from archive
+          cp -r build/Lossly.xcarchive/Products/Applications/Lossly.app build/Lossly.app
+
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "Lossly ${{ steps.version.outputs.VERSION }}" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "Lossly.app" 175 190 \
+            --hide-extension "Lossly.app" \
+            --app-drop-link 425 190 \
+            "build/Lossly-${{ steps.version.outputs.VERSION }}.dmg" \
+            "build/Lossly.app" || \
+          # Fallback to zip if DMG fails
+          cd build && zip -r "Lossly-${{ steps.version.outputs.VERSION }}.zip" Lossly.app
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Lossly ${{ steps.version.outputs.VERSION }}
+          body: |
+            ## Lossly ${{ steps.version.outputs.VERSION }}
+
+            ### Download
+            - **Lossly.dmg** — drag to Applications to install
+
+            ### What's new
+            See [CHANGELOG](CHANGELOG.md) for details.
+
+            ### Requirements
+            - macOS 14.0 (Sonoma) or later
+            - Apple Silicon (arm64)
+          files: |
+            build/Lossly-*.dmg
+            build/Lossly-*.zip
+          draft: true
+          prerelease: false
