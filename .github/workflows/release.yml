@@ -60,28 +60,38 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Build Release Archive
+      - name: Build Release
         run: |
-          xcodebuild archive \
+          # Build as a regular Release build (not archive) to avoid signing issues
+          xcodebuild build \
             -project Lossly.xcodeproj \
             -scheme Lossly \
             -configuration Release \
-            -archivePath ${{ runner.temp }}/Lossly.xcarchive \
-            -destination 'generic/platform=macOS' \
-            CODE_SIGN_IDENTITY='-' \
+            -destination 'platform=macOS' \
+            -derivedDataPath ${{ runner.temp }}/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=YES \
             MARKETING_VERSION=${{ needs.version.outputs.version }} \
             CURRENT_PROJECT_VERSION=${{ github.run_number }} \
           | xcpretty
 
-      - name: Copy app from archive
+      - name: Find and copy built app
         run: |
-          cp -r ${{ runner.temp }}/Lossly.xcarchive/Products/Applications/Lossly.app \
-                ${{ runner.temp }}/Lossly.app
+          echo "Looking for Lossly.app..."
+          find ${{ runner.temp }}/DerivedData -name "Lossly.app" -not -path "*/Index.noindex/*" | head -5
+          APP_PATH=$(find ${{ runner.temp }}/DerivedData -name "Lossly.app" -not -path "*/Index.noindex/*" | head -1)
+          echo "Found: $APP_PATH"
+          cp -r "$APP_PATH" ${{ runner.temp }}/Lossly.app
 
       - name: Ad-hoc code sign
-        run: codesign --deep --force --sign - --options runtime ${{ runner.temp }}/Lossly.app
+        run: |
+          # Sign all frameworks/dylibs first, then the app bundle
+          find ${{ runner.temp }}/Lossly.app -name "*.dylib" -o -name "*.framework" | while read f; do
+            codesign --force --sign - "$f" 2>/dev/null || true
+          done
+          codesign --deep --force --sign - ${{ runner.temp }}/Lossly.app
+          echo "Signed successfully"
+          codesign --verify ${{ runner.temp }}/Lossly.app && echo "Verification passed"
 
       - name: Create DMG
         run: |
