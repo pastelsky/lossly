@@ -1,0 +1,228 @@
+import SwiftUI
+
+// MARK: - InfoButton
+// Native popover info button using SF Symbol info.circle
+
+private struct InfoButton: View {
+    let text: String
+    @State private var showPopover = false
+
+    var body: some View {
+        Button {
+            showPopover.toggle()
+        } label: {
+            Image(systemName: "info.circle")
+                .foregroundStyle(.tertiary)
+                .imageScale(.small)
+        }
+        .buttonStyle(.plain)
+        .popover(isPresented: $showPopover, arrowEdge: .trailing) {
+            Text(text)
+                .font(.callout)
+                .lineLimit(nil)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(12)
+                .frame(minWidth: 200, maxWidth: 260)
+        }
+        .help(text)
+    }
+}
+
+// MARK: - SidebarView
+
+struct SidebarView: View {
+    @Bindable var document: ImageDocument
+
+    var body: some View {
+        VStack(spacing: 0) {
+            List {
+                // Auto / Manual mode picker — segmented control
+                Section(header: Text("Mode")) {
+                    Picker("", selection: $document.compressionMode) {
+                        ForEach(CompressionMode.allCases, id: \.self) { mode in
+                            Text(mode.rawValue).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .labelsHidden()
+                }
+                .collapsible(false)
+
+                // Auto mode description
+                if document.compressionMode == .auto {
+                    Section {
+                        Text("Uses minimum palette to achieve the chosen perceptual quality.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .collapsible(false)
+                }
+
+                // Mode-specific controls
+                switch document.compressionMode {
+                case .auto:
+                    autoSection
+                case .manual:
+                    manualSection
+                }
+            }
+            .listStyle(.sidebar)
+
+            Divider()
+
+            // Background picker — content-sized
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Background")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+
+                BackgroundPickerView(selected: $document.selectedBackground)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 10)
+            }
+        }
+    }
+
+    // MARK: Auto Mode
+
+    @ViewBuilder
+    private var autoSection: some View {
+        Section {
+            VStack(spacing: 4) {
+                HStack {
+                    Text("Quality")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                    Spacer()
+                    Text("\(document.autoQuality)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.quaternary, in: Capsule())
+                }
+                Slider(value: Binding(
+                    get: { Double(document.autoQuality) },
+                    set: { document.autoQuality = Int($0) }
+                ), in: 0...100) {
+                    EmptyView()
+                } minimumValueLabel: {
+                    Text("0").font(.caption).foregroundStyle(.primary)
+                } maximumValueLabel: {
+                    Text("100").font(.caption).foregroundStyle(.primary)
+                }
+            }
+        }
+        .collapsible(false)
+
+        Section(header: Text("Options")) {
+            Toggle(isOn: $document.ditheringEnabled) {
+                HStack(spacing: 8) {
+                    Label("Dithering", systemImage: "circle.grid.3x3")
+                    InfoButton(text: "Best for photos and gradients — smooths color transitions. Skip for logos, icons, or flat-color art where it adds noise without benefit.")
+                }
+            }
+            .toggleStyle(.switch)
+        }
+        .collapsible(false)
+    }
+
+    // MARK: Manual Mode
+
+    @ViewBuilder
+    private var manualSection: some View {
+        Section {
+            VStack(spacing: 4) {
+                HStack {
+                    Text("Colors")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                    Spacer()
+                    Text(document.colorsLabel)
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.quaternary, in: Capsule())
+                }
+                Slider(value: $document.colorsBitDepth, in: 1...9, step: 1) {
+                    EmptyView()
+                } minimumValueLabel: {
+                    Text("2").font(.caption).foregroundStyle(.primary)
+                } maximumValueLabel: {
+                    Text("256").font(.caption).foregroundStyle(.primary)
+                }
+            }
+        }
+        .collapsible(false)
+
+        Section(header: Text("Options")) {
+            LabeledContent {
+                Picker("", selection: $document.speed) {
+                    Text("Slow (best)").tag(1)
+                    Text("Balanced").tag(3)
+                    Text("Fast").tag(6)
+                    Text("Fastest").tag(11)
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: 120)
+            } label: {
+                HStack(spacing: 6) {
+                    Label("Speed", systemImage: "gauge.with.needle")
+                    InfoButton(text: "More passes = better palette, ~1–3% smaller file. Use Slow for final exports, Fast for quick previews.")
+                }
+            }
+
+            LabeledContent {
+                Picker("", selection: $document.posterizeBits) {
+                    Text("Off").tag(0)
+                    Text("1 bit").tag(1)
+                    Text("2 bits").tag(2)
+                    Text("3 bits").tag(3)
+                    Text("4 bits").tag(4)
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: 120)
+            } label: {
+                HStack(spacing: 6) {
+                    Label("Posterize", systemImage: "slider.horizontal.3")
+                    InfoButton(text: "Truncates the least-significant color bits, forcing near-identical pixels to match exactly. Helps compression on flat-color images; avoid for photos.")
+                }
+            }
+
+            Toggle(isOn: $document.ditheringEnabled) {
+                HStack(spacing: 8) {
+                    Label("Dithering", systemImage: "circle.grid.3x3")
+                    InfoButton(text: "Best for photos and gradients — smooths color transitions. Skip for logos, icons, or flat-color art where it adds noise without benefit.")
+                }
+            }
+            .toggleStyle(.switch)
+
+            Toggle(isOn: $document.deflateOptimizationEnabled) {
+                HStack(spacing: 8) {
+                    Label("Lossless deflate", systemImage: "cylinder.split.1x2")
+                    InfoButton(text: "Repacks the compressed data stream more efficiently after quantization. Lossless — no quality loss. Typically saves an additional 10–20%.")
+                }
+            }
+            .toggleStyle(.switch)
+        }
+        .collapsible(false)
+    }
+
+}
