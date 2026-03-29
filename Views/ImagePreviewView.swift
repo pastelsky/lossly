@@ -24,16 +24,28 @@ struct ImagePreviewView: View {
 
                     // Zoomable image
                     if let img = (document.showOriginal ? document.sourceImage : nil) ?? document.quantizedImage ?? document.sourceImage {
-                        Image(nsImage: img)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(
-                                width: min(img.size.width, geo.size.width * 0.92),
-                                height: min(img.size.height, geo.size.height * 0.92)
-                            )
-                            .scaleEffect(userZoom, anchor: .center)
-                            .zoomable(minZoomScale: 0.05, maxZoomScale: 32, doubleTapZoomScale: 2)
-                            .id(zoomableResetID)
+                        ZStack {
+                            Image(nsImage: img)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(
+                                    width: min(img.size.width, geo.size.width * 0.92),
+                                    height: min(img.size.height, geo.size.height * 0.92)
+                                )
+                            if document.showZebra, !document.showOriginal, let zebra = document.zebraOverlay {
+                                Image(nsImage: zebra)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(
+                                        width: min(img.size.width, geo.size.width * 0.92),
+                                        height: min(img.size.height, geo.size.height * 0.92)
+                                    )
+                                    .allowsHitTesting(false)
+                            }
+                        }
+                        .scaleEffect(userZoom, anchor: .center)
+                        .zoomable(minZoomScale: 0.05, maxZoomScale: 32, doubleTapZoomScale: 2)
+                        .id(zoomableResetID)
                     } else {
                         dropHint
                     }
@@ -189,6 +201,18 @@ struct ImagePreviewView: View {
             } else if document.sourceFileSize > 0, document.quantizedFileSize > 0 {
                 fileSizePill
             }
+
+            // Zebra diff toggle
+            Toggle(isOn: Binding(
+                get: { document.showZebra },
+                set: { document.showZebra = $0 }
+            )) {
+                Image(systemName: "line.3.horizontal")
+            }
+            .toggleStyle(.button)
+            .help("Show zebra diff — highlights areas that changed (⌘D)")
+            .keyboardShortcut("d", modifiers: .command)
+            .disabled(document.quantizedImage == nil)
 
             // Show original toggle
             Toggle(isOn: $document.showOriginal) {

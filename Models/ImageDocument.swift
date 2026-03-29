@@ -80,6 +80,13 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
     // MARK: Display settings
 
     var showOriginal: Bool = false
+    var showZebra: Bool = false {
+        didSet {
+            if showZebra { computeZebraOverlay() }
+            else { zebraOverlay = nil }
+        }
+    }
+    var zebraOverlay: NSImage?
     var zoomLevel: Double = 1.0
     var selectedBackground: BackgroundStyle = BackgroundStyle.all[0]
 
@@ -267,6 +274,7 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
             quantizedData = result
             quantizedFileSize = result.count
             quantizedImage = NSImage(data: result)
+            if showZebra { computeZebraOverlay() }
         } catch {
             guard !Task.isCancelled else { return }
             processingError = error.localizedDescription
@@ -297,6 +305,108 @@ final class ImageDocument: @preconcurrency ReferenceFileDocument {
         if bytes < 1024        { return "\(bytes) B" }
         if bytes < 1024 * 1024 { return String(format: "%.1f KB", Double(bytes) / 1024) }
         return String(format: "%.1f MB", Double(bytes) / (1024 * 1024))
+    }
+
+    // MARK: Zebra diff overlay
+
+    /// Computes a semi-transparent diagonal-stripe overlay highlighting pixels
+    /// that differ between source and quantized images.
+    private func computeZebraOverlay() {
+        guard let srcData = sourceImageData,
+              let qData = quantizedData,
+              let srcCG = cgImageFrom(srcData),
+              let qCG = cgImageFrom(qData) else {
+            zebraOverlay = nil
+            return
+        }
+
+        let w = srcCG.width
+        let h = srcCG.height
+
+        // If sizes differ (resize active), scale quantized to match source for comparison
+        let qScaled: CGImage
+        if qCG.width != w || qCG.height != h {
+            guard let ctx = CGContext(data: nil, width: w, height: h,
+                                      bitsPerComponent: 8, bytesPerRow: w * 4,
+                                      space: CGColorSpaceCreateDeviceRGB(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+                zebraOverlay = nil; return
+            }
+            ctx.interpolationQuality = .high
+            ctx.draw(qCG, in: CGRect(x: 0, y: 0, width: w, height: h))
+            guard let scaled = ctx.makeImage() else { zebraOverlay = nil; return }
+            qScaled = scaled
+        } else {
+            qScaled = qCG
+        }
+
+        // Get pixel data for both
+        guard let srcProvider = srcCG.dataProvider, let srcRaw = srcProvider.data,
+              let qProvider = qScaled.dataProvider, let qRaw = qProvider.data else {
+            zebraOverlay = nil; return
+        }
+
+        let srcPtr = CFDataGetBytePtr(srcRaw)!
+        let qPtr = CFDataGetBytePtr(qRaw)!
+        let pixelCount = w * h
+
+        // Build diff mask: true where any channel differs by > threshold
+        let threshold: UInt8 = 8
+        var mask = [Bool](repeating: false, count: pixelCount)
+        for i in 0..<pixelCount {
+            let off = i * 4
+            let dr = abs(Int(srcPtr[off]) - Int(qPtr[off]))
+            let dg = abs(Int(srcPtr[off+1]) - Int(qPtr[off+1]))
+            let db = abs(Int(srcPtr[off+2]) - Int(qPtr[off+2]))
+            let da = abs(Int(srcPtr[off+3]) - Int(qPtr[off+3]))
+            if dr > Int(threshold) || dg > Int(threshold) || db > Int(threshold) || da > Int(threshold) {
+                mask[i] = true
+            }
+        }
+
+        // Create zebra overlay: diagonal stripes where mask is true
+        let stripeWidth = max(4, w / 120)  // Scale stripe width with image size
+        guard let ctx = CGContext(data: nil, width: w, height: h,
+                                  bitsPerComponent: 8, bytesPerRow: w * 4,
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else {
+            zebraOverlay = nil; return
+        }
+
+        let buf = ctx.data!.bindMemory(to: UInt8.self, capacity: pixelCount * 4)
+        for y in 0..<h {
+            for x in 0..<w {
+                let i = y * w + x
+                if mask[i] {
+                    // Diagonal stripe pattern: (x + y) mod (stripeWidth*2) < stripeWidth
+                    let inStripe = ((x + y) % (stripeWidth * 2)) < stripeWidth
+                    let off = i * 4
+                    if inStripe {
+                        // Red-ish stripe, semi-transparent
+                        buf[off]   = 255  // R
+                        buf[off+1] = 50   // G
+                        buf[off+2] = 50   // B
+                        buf[off+3] = 140  // A (~55% opacity)
+                    } else {
+                        buf[off]   = 0
+                        buf[off+1] = 0
+                        buf[off+2] = 0
+                        buf[off+3] = 0
+                    }
+                } else {
+                    let off = i * 4
+                    buf[off] = 0; buf[off+1] = 0; buf[off+2] = 0; buf[off+3] = 0
+                }
+            }
+        }
+
+        guard let overlayImage = ctx.makeImage() else { zebraOverlay = nil; return }
+        zebraOverlay = NSImage(cgImage: overlayImage, size: NSSize(width: w, height: h))
+    }
+
+    private func cgImageFrom(_ data: Data) -> CGImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return nil }
+        return CGImageSourceCreateImageAtIndex(source, 0, nil)
     }
 
     // MARK: Resize using Core Graphics
