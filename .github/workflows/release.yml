@@ -85,13 +85,34 @@ jobs:
 
       - name: Ad-hoc code sign
         run: |
-          # Sign all frameworks/dylibs first, then the app bundle
-          find ${{ runner.temp }}/Lossly.app -name "*.dylib" -o -name "*.framework" | while read f; do
+          APP="${{ runner.temp }}/Lossly.app"
+
+          # Sign all nested binaries first (executables, dylibs, frameworks)
+          find "$APP" -type f \( -name "*.dylib" -o -name "*.framework" \) | while read f; do
             codesign --force --sign - "$f" 2>/dev/null || true
           done
-          codesign --deep --force --sign - ${{ runner.temp }}/Lossly.app
-          echo "Signed successfully"
-          codesign --verify ${{ runner.temp }}/Lossly.app && echo "Verification passed"
+
+          # Sign bundled CLI tools individually
+          for bin in "$APP/Contents/MacOS/pngquant" "$APP/Contents/MacOS/oxipng" "$APP/Contents/MacOS/posterizer"; do
+            if [ -f "$bin" ]; then
+              codesign --force --sign - "$bin"
+              echo "Signed: $bin"
+            fi
+          done
+
+          # Sign the main executable
+          codesign --force --sign - "$APP/Contents/MacOS/Lossly"
+
+          # Sign the app bundle (not --deep, we already handled nested)
+          codesign --force --sign - "$APP"
+
+          echo "=== Signature info ==="
+          codesign -dv "$APP" 2>&1
+          echo "=== Verify ==="
+          codesign --verify --verbose "$APP" 2>&1 && echo "Verification passed"
+
+          # Remove quarantine flag so users don't see "damaged" error
+          xattr -cr "$APP" 2>/dev/null || true
 
       - name: Create DMG
         run: |
