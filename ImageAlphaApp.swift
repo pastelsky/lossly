@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 // MARK: - AppDelegate — applies saved theme before first window renders
 
@@ -23,27 +24,15 @@ struct LosslyApp: App {
 
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
-    @State private var document = ImageDocument()
-
     var body: some Scene {
-        WindowGroup("Lossly") {
-            ContentView(document: document)
+        DocumentGroup(newDocument: { ImageDocument() }) { config in
+            ContentView(document: config.document)
                 .frame(minWidth: 700, minHeight: 480)
+                .navigationTitle("Lossly")
         }
-        .windowResizability(.contentMinSize)
         .commands {
-            // Remove "New Window" — Lossly is single window
             CommandGroup(replacing: .newItem) { }
 
-            // Add "Open" to File menu
-            CommandGroup(after: .newItem) {
-                Button("Open...") {
-                    openFile()
-                }
-                .keyboardShortcut("o", modifiers: .command)
-            }
-
-            // Add "Reveal in Finder"
             CommandGroup(after: .saveItem) {
                 Divider()
                 RevealInFinderCommand()
@@ -53,17 +42,6 @@ struct LosslyApp: App {
         // Native macOS Settings window (⌘,)
         Settings {
             SettingsView()
-        }
-    }
-
-    private func openFile() {
-        let panel = NSOpenPanel()
-        panel.allowedContentTypes = [.png]
-        panel.allowsMultipleSelection = false
-        panel.canChooseFiles = true
-        panel.canChooseDirectories = false
-        if panel.runModal() == .OK, let url = panel.url {
-            NotificationCenter.default.post(name: .openFileURL, object: url)
         }
     }
 }

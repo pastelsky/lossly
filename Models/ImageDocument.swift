@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import Observation
 
 // MARK: - CompressionMode
@@ -12,7 +13,12 @@ enum CompressionMode: String, CaseIterable {
 
 @MainActor
 @Observable
-final class ImageDocument {
+final class ImageDocument: @preconcurrency ReferenceFileDocument {
+
+    // MARK: ReferenceFileDocument conformance
+
+    static var readableContentTypes: [UTType] { [.png] }
+    static var writableContentTypes: [UTType] { [.png] }
 
     // MARK: Source image
 
@@ -149,7 +155,22 @@ final class ImageDocument {
 
     init() {}
 
-    // MARK: Load from drag-drop or file open
+    required init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+        sourceImageData = data
+        sourceImage = NSImage(data: data)
+        sourceFileSize = data.count
+    }
+
+    nonisolated func snapshot(contentType: UTType) throws -> Data { Data() }
+
+    nonisolated func fileWrapper(snapshot: Data, configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: snapshot)
+    }
+
+    // MARK: Load from drag-drop
 
     func load(url: URL) async {
         guard let data = try? Data(contentsOf: url) else { return }
