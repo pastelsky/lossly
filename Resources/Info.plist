@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App identity -->
+    <key>CFBundleName</key>
+    <string>Lossly</string>
+    <key>CFBundleDisplayName</key>
+    <string>Lossly</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.lossly.app</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleSignature</key>
+    <string>????</string>
+
+    <!-- macOS requirements -->
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSMainStoryboardFile</key>
+    <string></string>
+
+    <!-- High resolution support -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+
+    <!-- Document types — PNG files -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>PNG Image</string>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.png</string>
+            </array>
+            <key>NSDocumentClass</key>
+            <string>$(PRODUCT_MODULE_NAME).ImageDocument</string>
+            <key>CFBundleTypeIconSystemFile</key>
+            <string>public.png</string>
+        </dict>
+    </array>
+
+    <!-- Exported document types (for Finder preview) -->
+    <key>UTExportedTypeDeclarations</key>
+    <array/>
+
+    <!-- Privacy — no special permissions needed for PNG processing -->
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2026 Lossly. All rights reserved.</string>
+
+    <!-- App category for Mac App Store -->
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.photography</string>
+
+    <!-- Hardened runtime — required for notarization -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+
+    <!-- Allow running child processes (pngquant, posterizer, oxipng) -->
+    <key>com.apple.security.inherit</key>
+    <false/>
+</dict>
+</plist>

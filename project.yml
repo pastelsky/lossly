@@ -1,0 +1,64 @@
+name: Lossly
+options:
+  bundleIdPrefix: com.lossly
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16"
+  createIntermediateGroups: true
+  defaultConfig: Debug
+
+settings:
+  base:
+    PRODUCT_NAME: Lossly
+    PRODUCT_BUNDLE_IDENTIFIER: com.lossly.LosslyModern
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    SWIFT_VERSION: "6.0"
+    ENABLE_HARDENED_RUNTIME: NO
+    CODE_SIGN_STYLE: Automatic
+    INFOPLIST_FILE: Resources/Info.plist
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+configs:
+  Debug: debug
+  Release: release
+
+packages:
+  Zoomable:
+    url: https://github.com/ryohey/Zoomable.git
+    branch: main
+
+targets:
+  Lossly:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    dependencies:
+      - package: Zoomable
+        product: Zoomable
+    sources:
+      - path: ImageAlphaApp.swift
+      - path: Models
+      - path: Views
+      - path: Services
+      - path: Utilities
+    resources:
+      - path: Resources/Textures
+        buildPhase: resources
+      - path: Resources/Info.plist
+        buildPhase: none
+    preBuildScripts:
+      - name: Copy CLI Tools
+        script: |
+          cp "$SRCROOT/Binaries/pngquant" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/pngquant"
+          cp "$SRCROOT/Binaries/oxipng" "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/oxipng"
+          chmod +x "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/pngquant"
+          chmod +x "$TARGET_BUILD_DIR/$CONTENTS_FOLDER_PATH/MacOS/oxipng"
+        shell: /bin/sh
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lossly.LosslyModern
+        INFOPLIST_FILE: Resources/Info.plist
+        SWIFT_STRICT_CONCURRENCY: complete
+        OTHER_SWIFT_FLAGS: ""
+    scheme:
+      testTargets: []
