@@ -26,7 +26,7 @@ struct LosslyApp: App {
     @State private var document = ImageDocument()
 
     var body: some Scene {
-        WindowGroup {
+        WindowGroup("Lossly") {
             ContentView(document: document)
                 .frame(minWidth: 700, minHeight: 480)
         }
