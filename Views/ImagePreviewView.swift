@@ -110,9 +110,26 @@ struct ImagePreviewView: View {
             Image(systemName: "photo.badge.plus")
                 .font(.system(size: 48))
                 .foregroundStyle(.tertiary)
-            Text("Drop a PNG here")
+            Text("Drop a PNG here or click to open")
                 .font(.title3)
                 .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            openFilePicker()
+        }
+    }
+
+    private func openFilePicker() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png]
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            Task { await document.load(url: url) }
         }
     }
 
