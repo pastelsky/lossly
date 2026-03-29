@@ -21,7 +21,7 @@ struct ContentView: View {
                 document: document,
                 background: document.selectedBackground
             )
-            .navigationTitle("")
+            .navigationTitle("Lossly")
             .frame(minWidth: 300, maxWidth: .infinity, minHeight: 300, maxHeight: .infinity)
         }
         .navigationSplitViewStyle(.balanced)
