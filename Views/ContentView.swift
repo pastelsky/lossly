@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import UniformTypeIdentifiers
 
 // MARK: - ContentView
 //
@@ -32,6 +31,10 @@ struct ContentView: View {
             }
             Task { await document.load(url: url) }
             return true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openFileURL)) { note in
+            guard let url = note.object as? URL else { return }
+            Task { await document.load(url: url) }
         }
     }
 }

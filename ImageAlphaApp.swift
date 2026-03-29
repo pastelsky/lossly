@@ -1,6 +1,5 @@
 import SwiftUI
 import AppKit
-import UniformTypeIdentifiers
 
 // MARK: - AppDelegate — applies saved theme before first window renders
 
@@ -25,16 +24,24 @@ struct LosslyApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        DocumentGroup(newDocument: { ImageDocument() }) { config in
-            ContentView(document: config.document)
+        WindowGroup {
+            ContentView(document: ImageDocument())
                 .frame(minWidth: 700, minHeight: 480)
         }
+        .windowResizability(.contentMinSize)
         .commands {
-            // Replace "New" with "Open" in the File menu since Lossly
-            // is a document-centric app — all work starts from an existing PNG.
+            // Remove "New Window" — Lossly is single window
             CommandGroup(replacing: .newItem) { }
 
-            // Add "Reveal in Finder" after Save
+            // Add "Open" to File menu
+            CommandGroup(after: .newItem) {
+                Button("Open...") {
+                    openFile()
+                }
+                .keyboardShortcut("o", modifiers: .command)
+            }
+
+            // Add "Reveal in Finder"
             CommandGroup(after: .saveItem) {
                 Divider()
                 RevealInFinderCommand()
@@ -44,6 +51,17 @@ struct LosslyApp: App {
         // Native macOS Settings window (⌘,)
         Settings {
             SettingsView()
+        }
+    }
+
+    private func openFile() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png]
+        panel.allowsMultipleSelection = false
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = false
+        if panel.runModal() == .OK, let url = panel.url {
+            NotificationCenter.default.post(name: .openFileURL, object: url)
         }
     }
 }
@@ -64,6 +82,12 @@ private struct RevealInFinderCommand: View {
         .keyboardShortcut("r", modifiers: [.command, .shift])
         .disabled(documentURL == nil)
     }
+}
+
+// MARK: - Notification for file open
+
+extension Notification.Name {
+    static let openFileURL = Notification.Name("com.lossly.openFileURL")
 }
 
 // MARK: - FocusedValues for document URL
