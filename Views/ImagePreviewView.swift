@@ -23,23 +23,21 @@ struct ImagePreviewView: View {
                         .ignoresSafeArea()
 
                     // Zoomable image
-                    if let img = (document.showOriginal ? document.sourceImage : nil) ?? document.quantizedImage ?? document.sourceImage {
+                    if let displayImg = (document.showOriginal ? document.sourceImage : nil) ?? document.quantizedImage ?? document.sourceImage,
+                       let srcImg = document.sourceImage {
+                        // Use source image size for framing so layout doesn't jump on resize
+                        let frameW = min(srcImg.size.width, geo.size.width * 0.92)
+                        let frameH = min(srcImg.size.height, geo.size.height * 0.92)
                         ZStack {
-                            Image(nsImage: img)
+                            Image(nsImage: displayImg)
                                 .resizable()
                                 .aspectRatio(contentMode: .fit)
-                                .frame(
-                                    width: min(img.size.width, geo.size.width * 0.92),
-                                    height: min(img.size.height, geo.size.height * 0.92)
-                                )
+                                .frame(width: frameW, height: frameH)
                             if document.showZebra, !document.showOriginal, let zebra = document.zebraOverlay {
                                 Image(nsImage: zebra)
                                     .resizable()
                                     .aspectRatio(contentMode: .fit)
-                                    .frame(
-                                        width: min(img.size.width, geo.size.width * 0.92),
-                                        height: min(img.size.height, geo.size.height * 0.92)
-                                    )
+                                    .frame(width: frameW, height: frameH)
                                     .allowsHitTesting(false)
                             }
                         }
@@ -207,7 +205,7 @@ struct ImagePreviewView: View {
                 get: { document.showZebra },
                 set: { document.showZebra = $0 }
             )) {
-                Image(systemName: "line.3.horizontal")
+                Image(systemName: "camera.metering.spot")
             }
             .toggleStyle(.button)
             .help("Show zebra diff — highlights areas that changed (⌘D)")
@@ -248,6 +246,13 @@ struct ImagePreviewView: View {
                     .padding(.horizontal, 5)
                     .padding(.vertical, 1)
                     .background(Color.green, in: Capsule())
+            } else if document.compressionRatio > 1.0 {
+                Text("+\(String(format: "%.0f", (document.compressionRatio - 1.0) * 100))%")
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .background(Color.red, in: Capsule())
             }
         }
         .font(.caption.monospacedDigit())

@@ -36,5 +36,18 @@ struct ContentView: View {
             guard let url = note.object as? URL else { return }
             Task { await document.load(url: url) }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .exportImage)) { _ in
+            guard document.quantizedData != nil || document.sourceData != nil else { return }
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.png]
+            panel.nameFieldStringValue = document.suggestedFilename
+            panel.prompt = "Export"
+            if let dir = document.sourceDirectoryURL { panel.directoryURL = dir }
+            panel.begin { response in
+                guard response == .OK, let url = panel.url else { return }
+                let data = document.quantizedData ?? document.sourceData
+                try? data?.write(to: url, options: .atomic)
+            }
+        }
     }
 }

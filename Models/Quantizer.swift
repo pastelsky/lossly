@@ -12,10 +12,10 @@ protocol Quantizer: AnyObject, Identifiable, Sendable {
     var supportsPosterize: Bool { get }
 
     /// Return the executable name and argument list for this quantizer.
-    func launchArguments(dither: Bool, quality: ClosedRange<Int>, speed: Int, posterize: Int) -> (executable: String, args: [String])
+    func launchArguments(dither: Bool, quality: ClosedRange<Int>, speed: Int, posterize: Int, colors: Int) -> (executable: String, args: [String])
 
     /// A stable cache key for the current settings combination.
-    func versionID(quality: ClosedRange<Int>, dithering: Bool, speed: Int, posterize: Int) -> String
+    func versionID(quality: ClosedRange<Int>, dithering: Bool, speed: Int, posterize: Int, colors: Int) -> String
 }
 
 extension Quantizer {
@@ -24,8 +24,8 @@ extension Quantizer {
     var supportsPosterize: Bool { false }
     var qualityLabel: String { "Quality" }
 
-    func versionID(quality: ClosedRange<Int>, dithering: Bool, speed: Int, posterize: Int) -> String {
-        "\(id):q\(quality.lowerBound)-\(quality.upperBound):d\(dithering ? 1 : 0):s\(speed):p\(posterize)"
+    func versionID(quality: ClosedRange<Int>, dithering: Bool, speed: Int, posterize: Int, colors: Int = 256) -> String {
+        "\(id):q\(quality.lowerBound)-\(quality.upperBound):d\(dithering ? 1 : 0):s\(speed):p\(posterize):c\(colors)"
     }
 }
 
@@ -40,15 +40,12 @@ final class PngquantQuantizer: Quantizer {
     let supportsSpeed = true
     let supportsPosterize = true
 
-    func launchArguments(dither: Bool, quality: ClosedRange<Int>, speed: Int, posterize: Int) -> (executable: String, args: [String]) {
+    func launchArguments(dither: Bool, quality: ClosedRange<Int>, speed: Int, posterize: Int, colors: Int) -> (executable: String, args: [String]) {
         var args: [String] = []
-        // For passthrough/true color (quality 90-100), use strict 100-100 to prevent lossy reduction
-        let qLo = quality.lowerBound
-        let qHi = quality.upperBound
-        if qLo >= 90 && qHi == 100 {
-            args += ["--quality", "100-100"]
-        } else {
-            args += ["--quality", "\(qLo)-\(qHi)"]
+        args += ["--quality", "\(quality.lowerBound)-\(quality.upperBound)"]
+        // Pass explicit color count (2-256). pngquant uses this as the max palette size.
+        if colors >= 2 && colors <= 256 {
+            args += ["\(colors)"]
         }
         args += [dither ? "--floyd=1" : "--nofs"]
         args += ["--speed", "\(speed)"]

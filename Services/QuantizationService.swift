@@ -19,10 +19,11 @@ actor QuantizationService {
         dither: Bool,
         speed: Int,
         posterize: Int,
+        colors: Int = 256,
         deflate: Bool = true
     ) async throws -> Data {
         let (executable, args) = quantizer.launchArguments(
-            dither: dither, quality: quality, speed: speed, posterize: posterize
+            dither: dither, quality: quality, speed: speed, posterize: posterize, colors: colors
         )
 
         guard let execURL = findExecutable(named: executable) else {

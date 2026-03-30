@@ -31,9 +31,26 @@ struct LosslyApp: App {
                 .navigationTitle("Lossly")
         }
         .commands {
-            CommandGroup(replacing: .newItem) { }
+            CommandGroup(replacing: .newItem) {
+                Button("Open…") {
+                    let panel = NSOpenPanel()
+                    panel.allowedContentTypes = [.png]
+                    panel.allowsMultipleSelection = false
+                    panel.canChooseFiles = true
+                    panel.canChooseDirectories = false
+                    if panel.runModal() == .OK, let url = panel.url {
+                        NotificationCenter.default.post(name: .openFileURL, object: url)
+                    }
+                }
+                .keyboardShortcut("o", modifiers: .command)
+            }
 
             CommandGroup(after: .saveItem) {
+                Button("Export…") {
+                    NotificationCenter.default.post(name: .exportImage, object: nil)
+                }
+                .keyboardShortcut("e", modifiers: .command)
+
                 Divider()
                 RevealInFinderCommand()
             }
@@ -68,6 +85,7 @@ private struct RevealInFinderCommand: View {
 
 extension Notification.Name {
     static let openFileURL = Notification.Name("com.lossly.openFileURL")
+    static let exportImage = Notification.Name("com.lossly.exportImage")
 }
 
 // MARK: - FocusedValues for document URL

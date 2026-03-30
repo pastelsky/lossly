@@ -17,7 +17,9 @@
 		90B109A5C9F7C7504544A7AD /* BackgroundPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E2CDC3AED87AD98A1BDF262 /* BackgroundPickerView.swift */; };
 		A14AB3FFA9F474442607E5A7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4572CAC0ED24DDD0A9F1B9 /* SettingsView.swift */; };
 		B0A42E2C8EB8033F71B0B926 /* ImageAlphaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 410181BFA48D0DD61184FDDF /* ImageAlphaApp.swift */; };
+		B0CC30CAD0BF78142AEF9DA6 /* UpscaleService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A02DC339F25DE5DBB683E058 /* UpscaleService.swift */; };
 		C2AB5741BD88F56D9422FBE8 /* HandCursorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D74F05E67AD137CA9DE9B3 /* HandCursorView.swift */; };
+		DA8A5E1D4AF33AB16A1978A7 /* RealESRGAN_general.mlpackage in Sources */ = {isa = PBXBuildFile; fileRef = ABE9A7EA1EA2D8C1C57E43C2 /* RealESRGAN_general.mlpackage */; };
 		F34ED289452A0FDDFC9E6EE7 /* Quantizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3372053C969E363D2BC7FDBD /* Quantizer.swift */; };
 		FF30271778520E9D0E6672D9 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62954CE48A1722CCF76EE58C /* SidebarView.swift */; };
 /* End PBXBuildFile section */
@@ -34,6 +36,8 @@
 		62954CE48A1722CCF76EE58C /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		95ACC62681AB65B595D59E73 /* BackgroundStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundStyle.swift; sourceTree = "<group>"; };
 		9EBA4BBBD24ABAF18F8C0988 /* QuantizationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuantizationService.swift; sourceTree = "<group>"; };
+		A02DC339F25DE5DBB683E058 /* UpscaleService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpscaleService.swift; sourceTree = "<group>"; };
+		ABE9A7EA1EA2D8C1C57E43C2 /* RealESRGAN_general.mlpackage */ = {isa = PBXFileReference; path = RealESRGAN_general.mlpackage; sourceTree = "<group>"; };
 		D9D74F05E67AD137CA9DE9B3 /* HandCursorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandCursorView.swift; sourceTree = "<group>"; };
 		F1C5EBA15FE32048AD421176 /* ImageDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDocument.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -95,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				9EBA4BBBD24ABAF18F8C0988 /* QuantizationService.swift */,
+				A02DC339F25DE5DBB683E058 /* UpscaleService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -113,6 +118,7 @@
 			isa = PBXGroup;
 			children = (
 				1AB9B0FB713944B2A4E5300D /* Assets.xcassets */,
+				ABE9A7EA1EA2D8C1C57E43C2 /* RealESRGAN_general.mlpackage */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -223,8 +229,10 @@
 				4C619BB4B0A7079C15F4EB5D /* ImagePreviewView.swift in Sources */,
 				5DAF86DBC57BAB5564B3F0FA /* QuantizationService.swift in Sources */,
 				F34ED289452A0FDDFC9E6EE7 /* Quantizer.swift in Sources */,
+				DA8A5E1D4AF33AB16A1978A7 /* RealESRGAN_general.mlpackage in Sources */,
 				A14AB3FFA9F474442607E5A7 /* SettingsView.swift in Sources */,
 				FF30271778520E9D0E6672D9 /* SidebarView.swift in Sources */,
+				B0CC30CAD0BF78142AEF9DA6 /* UpscaleService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

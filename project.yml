@@ -42,6 +42,7 @@ targets:
       - path: Services
       - path: Utilities
       - path: Resources/Assets.xcassets
+      - path: Resources/RealESRGAN_general.mlpackage
     resources:
       - path: Resources/Textures
         buildPhase: resources

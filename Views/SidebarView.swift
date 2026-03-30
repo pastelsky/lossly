@@ -70,7 +70,7 @@ struct SidebarView: View {
                     manualSection
                 }
 
-                // Resize — shown in both modes
+                // Resize / Upscale — shown in both modes
                 resizeSection
             }
             .listStyle(.sidebar)
@@ -96,10 +96,16 @@ struct SidebarView: View {
 
     // MARK: Resize
 
+    // Resize snap points: below 100% = downsample, above 100% = AI upscale (4x then downsample)
+    private static let resizeSteps: [(label: String, value: Int)] = [
+        ("25%", 25), ("50%", 50), ("75%", 75), ("100%", 100),
+        ("1.5×", 150), ("2×", 200), ("3×", 300), ("4×", 400),
+    ]
+
     @ViewBuilder
     private var resizeSection: some View {
         Section {
-            VStack(spacing: 4) {
+            VStack(spacing: 6) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Resize")
                         .font(.caption)
@@ -107,24 +113,67 @@ struct SidebarView: View {
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                     Spacer()
-                    Text("\(document.resizedWidth) × \(document.resizedHeight)")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(.quaternary, in: Capsule())
+                    HStack(spacing: 4) {
+                        Text("\(document.resizedWidth) × \(document.resizedHeight)")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                        if document.resizePercent > 100 {
+                            Text("AI")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(.blue, in: Capsule())
+                        }
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(.quaternary, in: Capsule())
                 }
                 .padding(.trailing, 4)
-                Slider(value: Binding(
-                    get: { Double(document.resizePercent) },
-                    set: { document.resizePercent = max(1, Int($0)) }
-                ), in: 1...100) {
+
+                // Stepped slider that snaps to predefined values
+                let steps = Self.resizeSteps
+                let currentIndex = Binding<Double>(
+                    get: {
+                        // Find closest step index
+                        let idx = steps.enumerated().min(by: { abs($0.element.value - document.resizePercent) < abs($1.element.value - document.resizePercent) })?.offset ?? 2
+                        return Double(idx)
+                    },
+                    set: { newIdx in
+                        let idx = max(0, min(steps.count - 1, Int(newIdx.rounded())))
+                        document.resizePercent = steps[idx].value
+                    }
+                )
+                Slider(value: currentIndex, in: 0...Double(steps.count - 1), step: 1) {
                     EmptyView()
-                } minimumValueLabel: {
-                    Text("1%").font(.caption).foregroundStyle(.primary)
-                } maximumValueLabel: {
-                    Text("100%").font(.caption).foregroundStyle(.primary)
+                }
+
+                // Tick labels — positioned to align with macOS slider track stops
+                // macOS NSSlider has ~8pt internal padding on each side
+                GeometryReader { geo in
+                    let count = steps.count
+                    let sliderPad: CGFloat = 8
+                    let trackStart = sliderPad
+                    let trackEnd = geo.size.width - sliderPad
+                    let trackWidth = trackEnd - trackStart
+                    ForEach(Array(steps.enumerated()), id: \.offset) { idx, step in
+                        let fraction = count > 1 ? CGFloat(idx) / CGFloat(count - 1) : 0.5
+                        let position = trackStart + trackWidth * fraction
+                        Text(step.label)
+                            .font(.system(size: 8))
+                            .foregroundStyle(document.resizePercent == step.value ? .primary : .tertiary)
+                            .fixedSize()
+                            .position(x: position, y: 6)
+                    }
+                }
+                .frame(height: 14)
+
+                if document.resizePercent > 100 {
+                    Text("AI upscale via Real-ESRGAN")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
                 }
             }
         }
@@ -190,6 +239,16 @@ struct SidebarView: View {
                         .fontWeight(.semibold)
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
+                    Button {
+                        document.autoDetectColors()
+                    } label: {
+                        Image(systemName: "wand.and.stars")
+                            .imageScale(.small)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help("Auto-detect optimal color count")
+                    .disabled(document.sourceImage == nil)
                     Spacer()
                     Text(document.colorsLabel)
                         .font(.caption)
@@ -224,7 +283,7 @@ struct SidebarView: View {
             } label: {
                 HStack(spacing: 6) {
                     Label("Speed", systemImage: "gauge.with.needle")
-                    InfoButton(text: "More passes = better palette, ~1–3% smaller file. Use Slow for final exports, Fast for quick previews.")
+                    InfoButton(text: "Controls palette accuracy. Slower = more precise colors but not always smaller. Rarely needs changing.")
                 }
             }
 
